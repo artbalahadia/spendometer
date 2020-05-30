@@ -1,4 +1,53 @@
 // Storage
+const StorageCtrl = (function(){
+    // Public Methods
+    return {
+        storeItem: function(item){
+            let items;
+            if(localStorage.getItem('items') === null){
+                items = [];
+                items.push(item);
+                localStorage.setItem('items', JSON.stringify(items));
+            } else {
+                items = JSON.parse(localStorage.getItem('items'));
+                items.push(item);
+                localStorage.setItem('items', JSON.stringify(items));
+            }
+        },
+        getItemsFromStorage: function(){
+            let items;
+            if(localStorage.getItem('items') === null){
+                items = [];
+            } else {
+                items = JSON.parse(localStorage.getItem('items'));
+            }
+            return items;
+        },
+        updateItemStorage: function(updatedItem){
+            let items = JSON.parse(localStorage.getItem('items'));
+
+            items.forEach(function(item, index){
+                if(updatedItem.id === item.id){
+                    items.splice(index, 1, updatedItem);
+                }
+            });
+            localStorage.setItem('items', JSON.stringify(items));
+        },
+        deleteItemFromStorage: function(id){
+            let items = JSON.parse(localStorage.getItem('items'));
+
+            items.forEach(function(item, index){
+                if(updatedItem.id === item.id){
+                    items.splice(index, 1);
+                }
+            });
+            localStorage.setItem('items', JSON.stringify(items));
+        },
+        clearItemsFromStorage: function(){
+            localStorage.removeItem('items');
+        }
+    }
+})();
 
 // Item
 const ItemCtrl = (function() {
@@ -11,12 +60,11 @@ const ItemCtrl = (function() {
 
     // Data
     const data = {
-        items: [
+        items: StorageCtrl.getItemsFromStorage(),
             // Hard code example
             // {id: 0, name: 'Phone Bill', amount: '$'+50},
             // {id: 1, name: 'Car Payment', amount: '$'+450},
             // {id: 2, name: 'Grocery', amount: '$'+200}
-        ],
         currentItem: null,
         totalAmount: 0
     }
@@ -121,8 +169,8 @@ const UICtrl = (function() {
             let html = '';
             // Add Item
             items.forEach(function(item){
-                html += `<li class="collection-item" id="item.${item.id}">
-                <strong>${item.name}</strong><em>${item.amount}</em>
+                html += `<li class="collection-item" id="item-${item.id}">
+                <strong>${item.name} - </strong><em> $${item.amount}</em>
                 <a href="#" class="secondary-content">
                 <i class="edit-item fa fa-pencil"></i></a>
             </li>`
@@ -150,7 +198,7 @@ const UICtrl = (function() {
             li.className = 'collection-item';
             li.id = `item-${item.id}`;
             li.innerHTML = `
-            <strong>${item.name}</strong><em>$${item.amount}</em>
+            <strong>${item.name} - </strong><em> $${item.amount}</em>
             <a href="#" class="secondary-content">
             <i class="edit-item fa fa-pencil"></i></a>`;
             document.querySelector(UISelectors.itemList).insertAdjacentElement('beforeend', li);
@@ -193,7 +241,8 @@ const UICtrl = (function() {
                 const itemID = listItem.getAttribute('id');
 
                 if(itemID === `item-${item.id}`){
-                    document.querySelector(`#${itemID}`).innerHTML = `<strong>${item.name}</strong><em>$${item.amount}</em>
+                    document.querySelector(`#${itemID}`).innerHTML = `
+                    <strong>${item.name} - </strong><em> $${item.amount}</em>
                     <a href="#" class="secondary-content">
                     <i class="edit-item fa fa-pencil"></i></a>`;
                 }
@@ -211,12 +260,14 @@ const UICtrl = (function() {
             listItems.forEach(function(item){
                 item.remove();
             });
-        }
+        },
+
+        
     }
 })();
 
 // App
-const AppCtrl = (function(ItemCtrl, UICtrl) {
+const AppCtrl = (function(ItemCtrl, UICtrl, StorageCtrl) {
     // Load event listeners
     const loadEvents = function(){
         // Grab UIselectors
@@ -258,6 +309,8 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
             UICtrl.addTotalAmountUI(totalAmount);
             // Clear fields
             UICtrl.clearInput();
+            // Store data
+            StorageCtrl.storeItem(newItem);
         } else {
             alert('Please complete fields')
         }
@@ -273,6 +326,7 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
             // Break into an array
             const listIdArr = listId.split('-');
             // Get ID number
+            
             const id = parseInt(listIdArr[1]);
             // Get item
             const itemToEdit = ItemCtrl.getItemById(id);
@@ -297,6 +351,8 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         UICtrl.addTotalAmountUI(totalAmount);
         // Clear fields
         UICtrl.clearEditState();
+        // Update in storage
+        StorageCtrl.updateItemStorage(updatedItem);
 
         event.preventDefault();
     }
@@ -308,14 +364,14 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         ItemCtrl.deleteItem(currentItem.id);
         // delete in UI
         UICtrl.deleteListItem(currentItem.id);
-
-        
         // Get total amount
         const totalAmount = ItemCtrl.getTotalAmount();
         // Add total to UI
         UICtrl.addTotalAmountUI(totalAmount);
         // Clear fields
         UICtrl.clearEditState();
+        // Delete from storage
+        StorageCtrl.deleteItemFromStorage(currentItem.id);
 
         event.preventDefault();
     }
@@ -330,7 +386,8 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         UICtrl.addTotalAmountUI(totalAmount);
         // Remove in UI
         UICtrl.removeItems();
-
+        // Clear from storage
+        StorageCtrl.clearItemsFromStorage();
         
     }
 
@@ -352,6 +409,6 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         }
     }
 
-})(ItemCtrl, UICtrl);
+})(ItemCtrl, UICtrl, StorageCtrl);
 // Initialize
 AppCtrl.init()
