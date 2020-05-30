@@ -55,6 +55,22 @@ const ItemCtrl = (function() {
             data.totalAmount = total;
             
             return data.totalAmount;
+        },
+        getItemById: function(id){
+            let found = null;
+            // Loop through IDs
+            data.items.forEach(function(item){
+                if(item.id === id){
+                    found = item;
+                }
+            });
+            return found;
+        },
+        setCurrentItem: function(item){
+            data.currentItem = item;
+        },
+        getCurrentItem: function(){
+            return data.currentItem;
         }
     }
 })();
@@ -66,7 +82,10 @@ const UICtrl = (function() {
         addBtn: '.add-btn',
         itemName: '#item-name',
         itemAmount: '#item-amount',
-        totalAmount: '.total-spend'
+        totalAmount: '.total-spend',
+        updateBtn: '.update-btn',
+        deleteBtn: '.delete-btn',
+        backBtn: '.back-btn'
     }
 
     // Public Method
@@ -117,6 +136,27 @@ const UICtrl = (function() {
 
         addTotalAmountUI: function(totalAmount){
             document.querySelector(UISelectors.totalAmount).textContent = totalAmount;
+        },
+
+        clearEditState: function(){
+            UICtrl.clearInput();
+            document.querySelector(UISelectors.updateBtn).style.display = 'none';
+            document.querySelector(UISelectors.deleteBtn).style.display = 'none';
+            document.querySelector(UISelectors.backBtn).style.display = 'none';
+            document.querySelector(UISelectors.addBtn).style.display = 'inline';
+        },
+
+        addItemToForm: function(){
+            document.querySelector(UISelectors.itemName).value = ItemCtrl.getCurrentItem().name;
+            document.querySelector(UISelectors.itemAmount).value = ItemCtrl.getCurrentItem().amount;
+            UICtrl.showEditState();
+        },
+
+        showEditState: function(){
+            document.querySelector(UISelectors.updateBtn).style.display = 'inline';
+            document.querySelector(UISelectors.deleteBtn).style.display = 'inline';
+            document.querySelector(UISelectors.backBtn).style.display = 'inline';
+            document.querySelector(UISelectors.addBtn).style.display = 'none';
         }
     }
 })();
@@ -129,6 +169,8 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         const UISelectors = UICtrl.getSelectors();
         // Add item event
         document.querySelector(UISelectors.addBtn).addEventListener('click', addItem);
+        // Edit icon event
+        document.querySelector(UISelectors.itemList).addEventListener('click', itemUpdateSubmit);
     }
 
     // Add item func
@@ -154,16 +196,36 @@ const AppCtrl = (function(ItemCtrl, UICtrl) {
         event.preventDefault();
     }
 
+    const itemUpdateSubmit = function(event){
+        if(event.target.classList.contains('edit-item')){
+            // Get item id
+            const listId = event.target.parentNode.parentNode.id;
+            // Break into an array
+            const listIdArr = listId.split('-');
+            // Get ID number
+            const id = parseInt(listIdArr[1]);
+            // Get item
+            const itemToEdit = ItemCtrl.getItemById(id);
+            // Set current item
+            ItemCtrl.setCurrentItem(itemToEdit);
+            // Add item to form
+            UICtrl.addItemToForm();
+        }
+        
+        event.preventDefault();
+    }
+
     // Initializer/Public Method
     return {
         init: function(){
+            // Clear edit state
+            UICtrl.clearEditState();
             // Fetch from data
             const items = ItemCtrl.getItems();
             // Add to list
             UICtrl.populateItemList(items);
             // Load event
             loadEvents();
-
             // Get total amount
             const totalAmount = ItemCtrl.getTotalAmount();
             // Add total to UI
